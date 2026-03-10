@@ -178,5 +178,6 @@ This project demonstrates:
 
 ## 👩‍💻 Author
 
-Bhagyasree Muni
+Bhagyasri Muni
+
 Email: [bhagyamuni6@gmail.com](mailto:bhagyamuni6@gmail.com)
