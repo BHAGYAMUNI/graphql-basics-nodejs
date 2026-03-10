@@ -3,61 +3,69 @@ const {
   GraphQLObjectType,
   GraphQLString,
   GraphQLList,
-  GraphQLNonNull
+  GraphQLNonNull,
+  GraphQLID
 } = require("graphql");
 
-const { questions, answers } = require("../data/data");
+const Question = require("../models/Question");
+const Answer = require("../models/Answer");
+
+/* ---------------------- Answer Type ---------------------- */
 
 const AnswerType = new GraphQLObjectType({
   name: "Answer",
   fields: {
-    id: { type: GraphQLString },
+    id: { type: GraphQLID },
     questionId: { type: GraphQLString },
     text: { type: GraphQLString }
   }
 });
 
+/* ---------------------- Question Type ---------------------- */
+
 const QuestionType = new GraphQLObjectType({
   name: "Question",
   fields: () => ({
-    id: { type: GraphQLString },
+    id: { type: GraphQLID },
     title: { type: GraphQLString },
     difficulty: { type: GraphQLString },
 
     answers: {
       type: new GraphQLList(AnswerType),
       resolve(parent) {
-        return answers.filter(a => a.questionId === parent.id);
+        return Answer.find({ questionId: parent.id });
       }
     }
   })
 });
 
-const QueryType = new GraphQLObjectType({
-  name: "Query",
+/* ---------------------- Query ---------------------- */
+
+const RootQuery = new GraphQLObjectType({
+  name: "RootQueryType",
   fields: {
 
     questions: {
       type: new GraphQLList(QuestionType),
       resolve() {
-        return questions;
+        return Question.find();
       }
     },
 
     question: {
       type: QuestionType,
-      args: {
-        id: { type: GraphQLString }
-      },
+      args: { id: { type: GraphQLID } },
       resolve(parent, args) {
-        return questions.find(q => q.id === args.id);
+        return Question.findById(args.id);
       }
     }
 
   }
 });
 
-const MutationType = new GraphQLObjectType({
+/* ---------------------- Mutations ---------------------- */
+
+const Mutation = new GraphQLObjectType({
   name: "Mutation",
   fields: {
 
@@ -69,22 +77,38 @@ const MutationType = new GraphQLObjectType({
       },
       resolve(parent, args) {
 
-        const newQuestion = {
-          id: String(questions.length + 1),
+        const question = new Question({
           title: args.title,
           difficulty: args.difficulty
-        };
+        });
 
-        questions.push(newQuestion);
+        return question.save();
+      }
+    },
 
-        return newQuestion;
+    addAnswer: {
+      type: AnswerType,
+      args: {
+        questionId: { type: new GraphQLNonNull(GraphQLID) },
+        text: { type: new GraphQLNonNull(GraphQLString) }
+      },
+      resolve(parent, args) {
+
+        const answer = new Answer({
+          questionId: args.questionId,
+          text: args.text
+        });
+
+        return answer.save();
       }
     }
 
   }
 });
 
+/* ---------------------- Export Schema ---------------------- */
+
 module.exports = new GraphQLSchema({
-  query: QueryType,
-  mutation: MutationType
+  query: RootQuery,
+  mutation: Mutation
 });
